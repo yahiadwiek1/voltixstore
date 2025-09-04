@@ -1,15 +1,16 @@
 {
-  "name": "electronics-shop",
+  "name": "voltixstore",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "homepage": "https://yahiadwiek1.github.io/electronics-shop",
+  "homepage": "https://yahiadwiek1.github.io/voltixstore",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
