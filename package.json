@@ -1,9 +1,9 @@
 {
-  "name": "yahia_290",
+  "name": "electronics-shop",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "homepage": "https://yahiadwiek1.github.io/yahia_290",
+  "homepage": "https://yahiadwiek1.github.io/electronics-shop",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
