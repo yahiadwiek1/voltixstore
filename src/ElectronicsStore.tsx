@@ -1,354 +1,296 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingCart, X, Star, User, LogOut, Phone, MessageCircle } from "lucide-react";
+import { Search, ShoppingCart, X, Star, User, Phone, MessageCircle } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
-import emailjs from "@emailjs/browser";
 
 // ------------------ بيانات ------------------
-const CATEGORIES = ["الكل","مستشعرات","شاشات","محركات","وحدات تحكم","ملحقات"];
+const CATEGORIES = ["الكل","ألعاب","كاميرات","لوحات مفاتيح","ميكروفونات","كابلات","ساعات","إكسسوارات"];
 const PRODUCTS = [
-  {id:1,title:"حساس BME280",price:12.5,category:"مستشعرات",rating:4.7,description:"حساس دقيق.",specs:["I2C","دقة عالية"]},
-  {id:2,title:'شاشة OLED 0.96"',price:7.99,category:"شاشات",rating:4.3,description:"شاشة صغيرة.",specs:["128x64","I2C"]},
-  {id:3,title:"محرك سيرفو SG90",price:4.5,category:"محركات",rating:4.5,description:"صغير وخفيف.",specs:["4.8-6V","زاوية 180°"]},
+  { id:1, name:"وحدة تحكم ألعاب Switch/Lite/OLED لاسلكية", category:"ألعاب", price:35, rating:4.6, image:"https://via.placeholder.com/150", description:"وحدة تحكم لاسلكية متوافقة مع أجهزة Nintendo Switch / Lite / OLED. توفر استجابة سريعة وتصميم مريح للاستخدام الطويل." },
+  { id:2, name:"كاميرا ويب Jiacuali HD 1080P مع ميكروفون", category:"كاميرات", price:22, rating:4.4, image:"https://via.placeholder.com/150", description:"كاميرا ويب بدقة 1080P عالية الوضوح مع ميكروفون مدمج لعقد الاجتماعات والدروس عبر الإنترنت بجودة صوت وصورة ممتازة." },
+  { id:3, name:"لوحة مفاتيح ألعاب ZIYOU LANG M75 لاسلكية", category:"لوحات مفاتيح", price:45, rating:4.7, image:"https://via.placeholder.com/150", description:"لوحة مفاتيح ألعاب ميكانيكية لاسلكية بتصميم مدمج ودعم إضاءة خلفية RGB وأزرار عالية الاستجابة للألعاب." },
+  { id:4, name:"لوحة مفاتيح FREE WOLF F68 RGB ميكانيكية سلكية", category:"لوحات مفاتيح", price:40, rating:4.5, image:"https://via.placeholder.com/150", description:"لوحة مفاتيح ميكانيكية سلكية مع إضاءة RGB قابلة للتخصيص. تصميم مريح ومناسب للاعبين والمبرمجين." },
+  { id:5, name:"حامل ميكروفون فولاذي احترافي مع إدارة كابلات", category:"ميكروفونات", price:18, rating:4.3, image:"https://via.placeholder.com/150", description:"حامل ميكروفون معدني قابل للتعديل مع إمكانية تثبيت على الطاولة. مزود بنظام لإدارة الكابلات لتقليل الفوضى." },
+  { id:6, name:"وحدة تحكم XB360-04 سلكية عالية الأداء", category:"ألعاب", price:28, rating:4.2, image:"https://via.placeholder.com/150", description:"وحدة تحكم سلكية متوافقة مع أجهزة الكمبيوتر و Xbox 360. تتميز بأزرار دقيقة وتصميم مريح." },
+  { id:7, name:"ميكروفون USB 192KHz/24bit", category:"ميكروفونات", price:50, rating:4.6, image:"https://via.placeholder.com/150", description:"ميكروفون USB احترافي بجودة تسجيل تصل إلى 192kHz/24bit. مثالي للبودكاست والتسجيلات الصوتية والبث المباشر." },
+  { id:8, name:"ميكسر صوتي احترافي مع تأثيرات إضاءة", category:"ميكروفونات", price:65, rating:4.5, image:"https://via.placeholder.com/150", description:"ميكسر صوتي احترافي يدعم مؤثرات صوتية متعددة مع إضاءة LED مدمجة. مناسب للبث المباشر وتسجيل الأغاني." },
+  { id:9, name:"كابل شحن سريع Type-C PD 3.1 240W", category:"كابلات", price:12, rating:4.8, image:"https://via.placeholder.com/150", description:"كابل Type-C عالي الجودة يدعم Power Delivery 3.1 بقدرة تصل إلى 240W. مثالي للأجهزة الحديثة." },
+  { id:10, name:"لوحة مفاتيح ميكانيكية زرقاء 50/100 قطعة", category:"لوحات مفاتيح", price:55, rating:4.4, image:"https://via.placeholder.com/150", description:"مجموعة مفاتيح ميكانيكية بلون أزرق (50 أو 100 مفتاح). مناسبة للتبديل في لوحات المفاتيح الميكانيكية." },
+  { id:11, name:"ساعة منبه LED رقمية مبتكرة", category:"ساعات", price:15, rating:4.3, image:"https://via.placeholder.com/150", description:"ساعة منبه LED أنيقة مع شاشة رقمية واضحة. تحتوي على وظائف متعددة مثل المنبه وإظهار درجة الحرارة." },
+  { id:12, name:"حصيرة ماوس كبيرة مضادة للانزلاق مقاومة للماء", category:"إكسسوارات", price:20, rating:4.5, image:"https://via.placeholder.com/150", description:"حصيرة ماوس بمساحة واسعة مصنوعة من مواد مقاومة للماء والانزلاق. مثالية للألعاب والعمل." },
+  { id:13, name:"موسع إشارة WiFi قوي تغطية 9000 قدم²", category:"إكسسوارات", price:30, rating:4.7, image:"https://via.placeholder.com/150", description:"موسع WiFi احترافي بتغطية تصل إلى 9000 قدم². يعزز إشارة الإنترنت ويوفر اتصالاً ثابتاً وسريعاً." }
 ];
 
-// ------------------ أدوات ------------------
-const formatPriceILS = v => `${(v*3.7).toFixed(2)} ₪`;
-const initials = name => name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+// ------------------ Local Storage ------------------
+const saveUser = (user) => localStorage.setItem("voltix_user", JSON.stringify(user));
+const getUser = () => JSON.parse(localStorage.getItem("voltix_user"));
+const removeUser = () => localStorage.removeItem("voltix_user");
+const saveCart = (userEmail, cart) => localStorage.setItem("voltix_cart_" + userEmail, JSON.stringify(cart));
+const getCart = (userEmail) => JSON.parse(localStorage.getItem("voltix_cart_" + userEmail)) || [];
+const saveOrder = (userEmail, order) => {
+  const orders = JSON.parse(localStorage.getItem("voltix_orders_" + userEmail)) || [];
+  orders.push(order);
+  localStorage.setItem("voltix_orders_" + userEmail, JSON.stringify(orders));
+};
+const getOrders = (userEmail) => JSON.parse(localStorage.getItem("voltix_orders_" + userEmail)) || [];
 
-// ------------------ مكونات ------------------
-function ProductImage({ name }) {
-  const label = initials(name);
-  return <div className="h-24 w-24 rounded-xl bg-gradient-to-br from-white to-slate-100 border flex items-center justify-center shadow">
-    <span className="text-2xl font-bold text-blue-600">{label}</span>
-  </div>;
-}
-
-function ProductCard({ product, onAdd, onView }) {
+// ------------------ بطاقة المنتج ------------------
+function ProductCard({ product, onAddToCart, onViewDetails }) {
   return (
-    <motion.article layout whileHover={{y:-6}} className="bg-white rounded-2xl shadow-md p-4 hover:shadow-xl transition-all">
-      <ProductImage name={product.title}/>
-      <h3 className="font-semibold mt-3">{product.title}</h3>
-      <p className="text-sm text-slate-500">{product.category}</p>
-      <div className="flex items-center justify-between mt-3">
-        <span className="font-bold">{formatPriceILS(product.price)}</span>
-        <span className="flex items-center gap-1"><Star size={14} className="text-yellow-400"/>{product.rating}</span>
-      </div>
-      <div className="mt-4 flex gap-2">
-        <button onClick={(e)=>onAdd(product,e)} className="flex-1 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition">أضف للسلة</button>
-        <button onClick={()=>onView(product)} className="py-2 px-3 rounded-xl border hover:bg-gray-100 transition">عرض</button>
-      </div>
-    </motion.article>
+    <motion.div layout initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}} className="bg-white shadow rounded-2xl p-4 hover:shadow-xl transition duration-300">
+      <img src={product.image} alt={product.name} className="w-full h-36 object-cover rounded-xl mb-2 cursor-pointer" onClick={()=>onViewDetails(product)}/>
+      <h3 className="text-lg font-bold cursor-pointer" onClick={()=>onViewDetails(product)}>{product.name}</h3>
+      <p className="text-blue-600 font-semibold">{product.price} ₪</p>
+      <div className="flex items-center text-yellow-500"><Star size={16} className="fill-yellow-500"/> {product.rating}</div>
+      <button onClick={()=>onAddToCart(product)} className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 rounded-xl hover:from-blue-700 hover:to-blue-500 transition">إضافة للسلة</button>
+    </motion.div>
   );
 }
 
-// ------------------ Sidebar ------------------
-function Sidebar({ open, onClose, user, onLogin, onLogout }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    firstName:"", lastName:"", email:"", password:"", confirmPassword:"", phone:"", city:"", address:""
-  });
-
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validatePhone = (phone) => /^[0-9]{8,15}$/.test(phone);
-
-  const handleSubmit = () => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    if(isLogin){
-      const u = users.find(u=>u.email===formData.email && u.password===formData.password);
-      if(!u) return toast.error("بيانات الدخول غير صحيحة");
-      localStorage.setItem("currentUser",JSON.stringify(u));
-      onLogin(u); toast.success("تم تسجيل الدخول بنجاح"); onClose();
-    } else {
-      const { firstName,lastName,email,password,confirmPassword,phone,city,address } = formData;
-      if(!firstName||!lastName||!email||!password||!confirmPassword||!phone||!city||!address)
-        return toast.error("يرجى ملء جميع الحقول. لا يمكن ترك الشارع/المنطقة فارغًا");
-      if(!validateEmail(email)) return toast.error("البريد الإلكتروني غير صالح");
-      if(!validatePhone(phone)) return toast.error("رقم الهاتف غير صالح");
-      if(password!==confirmPassword) return toast.error("كلمتا المرور غير متطابقتين");
-      if(users.some(u=>u.email===email)) return toast.error("البريد الإلكتروني موجود بالفعل");
-
-      const newUser={firstName,lastName,email,password,phone,city,address};
-      users.push(newUser); localStorage.setItem("users",JSON.stringify(users));
-      localStorage.setItem("currentUser",JSON.stringify(newUser));
-      onLogin(newUser); toast.success("تم إنشاء الحساب بنجاح"); onClose();
-    }
-  };
-
+// ------------------ تفاصيل المنتج ------------------
+function ProductDetailModal({ product, onClose, onAddToCart }) {
   return (
     <AnimatePresence>
-      {open && (
-        <>
-          <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}/>
-          <motion.div className="fixed left-0 top-0 h-full w-80 bg-white z-50 p-6 flex flex-col justify-between"
-            initial={{x:"-100%"}} animate={{x:0}} exit={{x:"-100%"}} transition={{type:"spring", damping:20}}>
-            
-            <div>
-              <button onClick={onClose} className="absolute top-4 right-4 p-2"><X size={22}/></button>
-              {!user ? <>
-                <h2 className="text-xl font-bold mb-4">{isLogin?"تسجيل الدخول":"إنشاء حساب"}</h2>
-                {!isLogin && <>
-                  <input placeholder="الاسم الأول" value={formData.firstName} onChange={e=>setFormData({...formData,firstName:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                  <input placeholder="الاسم الأخير" value={formData.lastName} onChange={e=>setFormData({...formData,lastName:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                  <input placeholder="رقم الهاتف" value={formData.phone} onChange={e=>setFormData({...formData,phone:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                  <input placeholder="المدينة" value={formData.city} onChange={e=>setFormData({...formData,city:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                  <input placeholder="الشارع / المنطقة" value={formData.address} onChange={e=>setFormData({...formData,address:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                </>}
-                <input placeholder="البريد الإلكتروني" value={formData.email} onChange={e=>setFormData({...formData,email:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                <input type="password" placeholder="كلمة المرور" value={formData.password} onChange={e=>setFormData({...formData,password:e.target.value})} className="w-full mb-2 p-2 border rounded"/>
-                {!isLogin && <input type="password" placeholder="تأكيد كلمة المرور" value={formData.confirmPassword} onChange={e=>setFormData({...formData,confirmPassword:e.target.value})} className="w-full mb-2 p-2 border rounded"/>}
-                <button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-2 rounded mt-2">{isLogin?"تسجيل دخول":"إنشاء حساب"}</button>
-                <div className="text-center mt-3 text-sm text-slate-500">
-                  {isLogin?"لا تملك حساب؟ ":"لديك حساب بالفعل؟ "}
-                  <button onClick={()=>setIsLogin(!isLogin)} className="text-blue-600 font-semibold">{isLogin?"إنشاء حساب":"تسجيل دخول"}</button>
-                </div>
-              </> : <>
-                <div className="flex items-center gap-3 mb-4">
-                  <User size={24} className="text-blue-600"/>
-                  <div>
-                    <p className="font-bold">{user.firstName} {user.lastName}</p>
-                    <p className="text-gray-500 text-sm">{user.city} - {user.address}</p>
-                  </div>
-                </div>
-                <button onClick={()=>{onLogout(); onClose();}} className="w-full flex items-center justify-center gap-2 py-2 bg-red-500 text-white rounded-lg mb-4 hover:bg-red-600 transition">
-                  <LogOut size={20}/> تسجيل خروج
-                </button>
-              </>}
-            </div>
-
-            <div className="mt-4 space-y-2">
-              <p className="font-semibold">تواصل معنا:</p>
-              <a href="tel:+972594983850" className="flex items-center gap-2 py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 transition">
-                <Phone size={18}/> 0594983850
-              </a>
-              <a href="https://wa.me/972594983850" target="_blank" className="flex items-center gap-2 py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700 transition">
-                <MessageCircle size={18}/> واتساب
-              </a>
-            </div>
+      {product && (
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <motion.div initial={{scale:0.8}} animate={{scale:1}} exit={{scale:0.8}} className="bg-white rounded-2xl p-6 max-w-md w-full relative">
+            <button onClick={onClose} className="absolute top-4 right-4"><X size={24}/></button>
+            <img src={product.image} alt={product.name} className="w-full h-64 object-cover rounded-xl mb-4"/>
+            <h2 className="text-xl font-bold mb-2">{product.name}</h2>
+            <p className="text-gray-700 mb-2">{product.description}</p>
+            <p className="text-blue-600 font-bold mb-2">{product.price} ₪</p>
+            <div className="flex items-center text-yellow-500 mb-4"><Star size={16} className="fill-yellow-500"/> {product.rating}</div>
+            <button onClick={()=>{onAddToCart(product); onClose();}} className="w-full bg-green-600 text-white py-2 rounded">إضافة للسلة</button>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-// ------------------ CartModal مع فاتورة EmailJS للعميل والمالك ------------------
-function CartModal({ isOpen, onClose, cart, onRemove, user }) {
-  const [paymentMethod,setPaymentMethod]=useState("cod");
-  const [cardNumber,setCardNumber]=useState("");
-  const [cvv,setCvv]=useState("");
-  const [expiryMonth,setExpiryMonth]=useState("");
-  const [expiryYear,setExpiryYear]=useState("");
-  const total = cart.reduce((sum,item)=>sum+item.product.price*item.qty,0);
+// ------------------ لوحة المستخدم ------------------
+function UserPanel({ isOpen, onClose, user, setUser, cart, setCart }) {
+  const [mode, setMode] = useState("login");
+  const [formData, setFormData] = useState({ firstName:"", lastName:"", email:"", password:"", phone:"", city:"", address:"" });
+  const [orders, setOrders] = useState([]);
 
-  const sendEmailInvoice = async () => {
-    if(!user?.email) return;
+  useEffect(()=>{ if(user) { setFormData(user); setOrders(getOrders(user.email)); setMode("login"); } },[user]);
 
-    const items = cart.map(it=>`${it.product.title} × ${it.qty} = ${formatPriceILS(it.product.price*it.qty)}`).join("<br/>");
-    const html = `
-      <h2>فاتورتك من متجر الإلكترونيات</h2>
-      <p>العميل: ${user.firstName} ${user.lastName}</p>
-      <p>رقم الهاتف: ${user.phone}</p>
-      <p>المدينة: ${user.city}</p>
-      <p>الشارع / المنطقة: ${user.address}</p>
-      <hr/>
-      <p>${items}</p>
-      <hr/>
-      <p>المجموع: ${formatPriceILS(total)}</p>
-      <p>طريقة الدفع: ${paymentMethod==="visa"?"Visa":"دفع عند الاستلام"}</p>
-    `;
-    
-    try {
-      // إرسال الفاتورة للعميل
-      await emailjs.send(
-        "service_g40nd27",     // ✅ Service ID
-        "template_mf44dd4",    // ✅ Template ID
-        {
-          to_email: user.email,
-          message_html: html,
-          user_name: user.firstName
-        },
-        "vMhUfjQw3iSc1Ukmo"    // ✅ Public Key
-      );
-      toast.success("📧 تم إرسال الفاتورة إلى بريدك الإلكتروني");
-
-      // إرسال نسخة الفاتورة للمالك
-      await emailjs.send(
-        "service_g40nd27",
-        "template_mf44dd4",
-        {
-          to_email: "owner@example.com", // 🔴 ضع بريدك هنا
-          message_html: html,
-          user_name: user.firstName
-        },
-        "vMhUfjQw3iSc1Ukmo"
-      );
-      console.log("📧 نسخة الفاتورة تم إرسالها للمالك");
-    } catch(e){
-      console.error(e);
-      toast.error("حدث خطأ أثناء إرسال الفاتورة");
+  const handleLogin = e => {
+    e.preventDefault();
+    const stored = getUser();
+    if(!stored || stored.email!==formData.email || stored.password!==formData.password){
+      toast.error("البريد أو كلمة المرور خاطئة"); return;
     }
+    setUser(stored);
+    setCart(getCart(stored.email));
+    setOrders(getOrders(stored.email));
+    toast.success("تم تسجيل الدخول");
+    onClose();
   };
 
-  const handleCheckout = ()=>{
-    if(cart.length===0) return toast.error("سلتك فارغة 🛒");
+  const handleRegister = e => {
+    e.preventDefault();
+    const required = ["firstName","lastName","email","password"];
+    if(required.some(f => !formData[f])){ toast.error("الرجاء تعبئة جميع الحقول الأساسية"); return; }
+    saveUser(formData);
+    setUser(formData);
+    setCart([]);
+    toast.success("تم إنشاء الحساب");
+    onClose();
+  };
 
-    if(paymentMethod==="visa"){
-      if(cardNumber.length!==16) return toast.error("رقم البطاقة يجب أن يكون 16 رقم");
-      if(cvv.length<3||cvv.length>4) return toast.error("CVV غير صالح");
-      if(!expiryMonth||!expiryYear) return toast.error("الرجاء إدخال تاريخ الانتهاء");
+  const handleEdit = e => {
+    e.preventDefault();
+    saveUser(formData);
+    setUser(formData);
+    toast.success("تم تحديث البيانات");
+    setMode("login");
+  };
 
-      toast.success(`تم الدفع بنجاح باستخدام Visa ✅\nسيتم تحويل المبلغ إلى حسابك على رفلكت:\nIBAN: PS20ARAB900030021956047249500`);
-    } else {
-      toast.success(`تم الدفع عند الاستلام. سيتم شحن الطلب إلى ${user.firstName} ${user.lastName} ✅`);
-    }
-
-    if(user){
-      sendEmailInvoice();
-    }
-
-    localStorage.removeItem("cart");
+  const handleLogout = () => {
+    if(user) saveCart(user.email, cart);
+    removeUser();
+    setUser(null);
+    setCart([]);
+    toast.success("تم تسجيل الخروج");
     onClose();
   };
 
   return (
     <AnimatePresence>
-      {isOpen && <>
-        <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}/>
-        <motion.div className="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 flex flex-col"
-          initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} transition={{type:"spring", damping:20}}>
+      {isOpen && (
+        <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} className="fixed top-0 right-0 w-96 h-full bg-white shadow-2xl p-6 z-50 overflow-y-auto">
+          <button onClick={onClose} className="absolute top-4 left-4"><X size={24}/></button>
 
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-bold">سلة المشتريات</h2>
-            <button onClick={onClose}><X size={22}/></button>
-          </div>
+          {!user && mode==="login" && (
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold mb-4">تسجيل الدخول</h2>
+              <input type="email" placeholder="البريد الإلكتروني" value={formData.email} onChange={e=>setFormData({...formData,email:e.target.value})} className="p-2 border rounded"/>
+              <input type="password" placeholder="كلمة المرور" value={formData.password} onChange={e=>setFormData({...formData,password:e.target.value})} className="p-2 border rounded"/>
+              <button type="submit" className="bg-blue-600 text-white py-2 rounded">تسجيل الدخول</button>
+              <p className="text-sm text-gray-500">ليس لديك حساب؟ <span className="text-blue-600 cursor-pointer" onClick={()=>setMode("register")}>إنشاء حساب</span></p>
+            </form>
+          )}
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {cart.length===0 ? <p className="text-gray-500 text-center">السلة فارغة</p> :
-              <>
-                <div className="border rounded-lg p-4 bg-gray-50 space-y-3 shadow-sm">
-                  <h3 className="font-bold text-lg mb-2">فاتورتك</h3>
-                  {cart.map(it=>(<div key={it.product.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 transition">
-                    <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-white to-slate-100 flex items-center justify-center text-blue-600 font-bold shadow">
-                        {it.product.title.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium">{it.product.title}</p>
-                        <p className="text-sm text-gray-500">{it.qty} × {formatPriceILS(it.product.price)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{formatPriceILS(it.product.price*it.qty)}</span>
-                      <button onClick={()=>onRemove(it.product.id)} className="text-red-500 text-sm">حذف</button>
-                    </div>
-                  </div>))}
-                  <div className="flex justify-between font-bold border-t pt-2">
-                    <span>المجموع:</span>
-                    <span>{formatPriceILS(total)}</span>
-                  </div>
-                </div>
+          {!user && mode==="register" && (
+            <form onSubmit={handleRegister} className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold mb-4">إنشاء حساب</h2>
+              <input type="text" placeholder="الاسم الأول" value={formData.firstName} onChange={e=>setFormData({...formData,firstName:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="اسم العائلة" value={formData.lastName} onChange={e=>setFormData({...formData,lastName:e.target.value})} className="p-2 border rounded"/>
+              <input type="email" placeholder="البريد الإلكتروني" value={formData.email} onChange={e=>setFormData({...formData,email:e.target.value})} className="p-2 border rounded"/>
+              <input type="password" placeholder="كلمة المرور" value={formData.password} onChange={e=>setFormData({...formData,password:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="الهاتف" value={formData.phone} onChange={e=>setFormData({...formData,phone:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="المدينة" value={formData.city} onChange={e=>setFormData({...formData,city:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="العنوان" value={formData.address} onChange={e=>setFormData({...formData,address:e.target.value})} className="p-2 border rounded"/>
+              <button type="submit" className="bg-blue-600 text-white py-2 rounded">إنشاء الحساب</button>
+              <p className="text-sm text-gray-500">لديك حساب؟ <span className="text-blue-600 cursor-pointer" onClick={()=>setMode("login")}>تسجيل الدخول</span></p>
+            </form>
+          )}
 
-                <div className="border p-4 rounded-lg mt-4 space-y-3">
-                  <h3 className="font-semibold">طريقة الدفع</h3>
-                  <div className="flex gap-4">
-                    <button onClick={()=>setPaymentMethod("cod")} className={`flex-1 py-2 rounded-xl ${paymentMethod==="cod"?"bg-blue-600 text-white":"bg-gray-100"}`}>دفع عند الاستلام</button>
-                    <button onClick={()=>setPaymentMethod("visa")} className={`flex-1 py-2 rounded-xl ${paymentMethod==="visa"?"bg-blue-600 text-white":"bg-gray-100"}`}>Visa</button>
-                  </div>
+          {user && mode==="login" && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold mb-4">مرحبا {user.firstName}</h2>
+              <button className="bg-blue-600 text-white py-2 rounded" onClick={()=>setMode("edit")}>تعديل البيانات</button>
+              <h3 className="text-xl font-bold mt-4">طلباتك السابقة</h3>
+              {orders.length===0 && <p>لم تقم بأي طلب بعد</p>}
+              {orders.map((order,i)=>(<div key={i} className="border p-2 rounded mb-2">الطلب {i+1}: {order.items.map(it=>it.name).join(", ")} - الإجمالي: {order.total} ₪</div>))}
+              <button onClick={handleLogout} className="bg-red-600 text-white py-2 rounded mt-4">تسجيل الخروج</button>
+            </div>
+          )}
 
-                  {paymentMethod==="visa" && (
-                    <div className="space-y-2 mt-2">
-                      <input type="text" placeholder="رقم البطاقة" maxLength={16} value={cardNumber} onChange={e=>setCardNumber(e.target.value)} className="w-full p-2 border rounded"/>
-                      <input type="text" placeholder="CVV" maxLength={4} value={cvv} onChange={e=>setCvv(e.target.value)} className="w-full p-2 border rounded"/>
-                      <div className="flex gap-2">
-                        <input type="text" placeholder="شهر" maxLength={2} value={expiryMonth} onChange={e=>setExpiryMonth(e.target.value)} className="w-1/2 p-2 border rounded"/>
-                        <input type="text" placeholder="سنة" maxLength={2} value={expiryYear} onChange={e=>setExpiryYear(e.target.value)} className="w-1/2 p-2 border rounded"/>
-                      </div>
-                      <p className="text-sm text-gray-500">المبلغ سيحول لاحقًا يدويًا إلى حسابك على رفلكت.</p>
-                    </div>
-                  )}
-
-                  {paymentMethod==="cod" && user && (
-                    <div className="text-gray-600 text-sm mt-2 border p-2 rounded">
-                      سيتم شحن الطلب إلى:<br/>
-                      {user.firstName} {user.lastName}<br/>
-                      {user.phone}<br/>
-                      {user.city} - {user.address}
-                    </div>
-                  )}
-                </div>
-              </>
-            }
-          </div>
-
-          <div className="p-4 border-t space-y-3">
-            <button onClick={handleCheckout} disabled={cart.length===0} className="w-full bg-blue-600 text-white py-2 rounded disabled:bg-gray-400">
-              {paymentMethod==="visa"?"ادفع الآن":"تأكيد الطلب"}
-            </button>
-          </div>
+          {user && mode==="edit" && (
+            <form onSubmit={handleEdit} className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold mb-4">تعديل البيانات</h2>
+              <input type="text" placeholder="الاسم الأول" value={formData.firstName} onChange={e=>setFormData({...formData,firstName:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="اسم العائلة" value={formData.lastName} onChange={e=>setFormData({...formData,lastName:e.target.value})} className="p-2 border rounded"/>
+              <input type="email" placeholder="البريد الإلكتروني" value={formData.email} onChange={e=>setFormData({...formData,email:e.target.value})} className="p-2 border rounded"/>
+              <input type="password" placeholder="كلمة المرور" value={formData.password} onChange={e=>setFormData({...formData,password:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="الهاتف" value={formData.phone} onChange={e=>setFormData({...formData,phone:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="المدينة" value={formData.city} onChange={e=>setFormData({...formData,city:e.target.value})} className="p-2 border rounded"/>
+              <input type="text" placeholder="العنوان" value={formData.address} onChange={e=>setFormData({...formData,address:e.target.value})} className="p-2 border rounded"/>
+              <button type="submit" className="bg-blue-600 text-white py-2 rounded">حفظ التعديلات</button>
+            </form>
+          )}
         </motion.div>
-      </>}
+      )}
     </AnimatePresence>
   );
 }
 
-// ------------------ Main ------------------
-export default function ShopApp(){
-  const [category,setCategory]=useState("الكل");
-  const [search,setSearch]=useState("");
-  const [cart,setCart]=useState(()=>JSON.parse(localStorage.getItem("cart")||"[]"));
-  const [sidebarOpen,setSidebarOpen]=useState(false);
-  const [user,setUser]=useState(()=>JSON.parse(localStorage.getItem("currentUser")||"null"));
-  const [cartOpen,setCartOpen]=useState(false);
+// ------------------ لوحة السلة مع خيارات الدفع ------------------
+function CartPanel({ isOpen, onClose, cart, setCart, user }) {
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [cardInfo, setCardInfo] = useState({ number:"", expiry:"", cvv:"" });
+  const total = cart.reduce((sum,p)=>sum+p.price,0);
 
-  const filtered=useMemo(()=>PRODUCTS.filter(p=>(category==="الكل"||p.category===category) && p.title.toLowerCase().includes(search.toLowerCase())),[category,search]);
-
-  const addToCart=(product,e)=>{
-    e.stopPropagation();
-    const existing=cart.find(i=>i.product.id===product.id);
-    let updated;
-    if(existing){ updated=cart.map(i=>i.product.id===product.id?{...i,qty:i.qty+1}:i); }
-    else { updated=[...cart,{product,qty:1}]; }
-    setCart(updated); localStorage.setItem("cart",JSON.stringify(updated));
-    toast.success("تمت إضافة المنتج للسلة 🛒");
-  };
-  const removeFromCart=(id)=>{
-    const updated=cart.filter(i=>i.product.id!==id);
-    setCart(updated); localStorage.setItem("cart",JSON.stringify(updated));
+  const handleCheckout = () => {
+    if(!user) { toast.error("الرجاء تسجيل الدخول لإتمام الشراء"); return; }
+    if(paymentMethod==="visa" && (!cardInfo.number || !cardInfo.expiry || !cardInfo.cvv)){
+      toast.error("الرجاء تعبئة جميع حقول بطاقة Visa"); return;
+    }
+    const order = { date:new Date().toLocaleString(), total, items:[...cart], payment: paymentMethod };
+    saveOrder(user.email, order);
+    saveCart(user.email, []);
+    setCart([]);
+    toast.success("تم تأكيد الطلب");
+    onClose();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Toaster/>
-      {/* رأس الصفحة */}
-      <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <h1 className="font-bold text-xl">🛒 متجر الإلكترونيات</h1>
-          <div className="flex gap-3 items-center">
-            <div className="relative">
-              <input type="text" placeholder="بحث..." value={search} onChange={e=>setSearch(e.target.value)} className="border rounded-xl px-3 py-1.5"/>
-              <Search size={18} className="absolute right-2 top-2 text-gray-400"/>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} className="fixed top-0 right-0 w-96 h-full bg-blue-50 shadow-2xl p-6 z-50 overflow-y-auto">
+          <button onClick={onClose} className="absolute top-4 left-4"><X size={24}/></button>
+          <h2 className="text-2xl font-bold text-blue-800 mb-4">سلة المشتريات</h2>
+
+          {cart.length===0 ? <p className="text-blue-700">السلة فارغة</p> : (
+            <div className="flex flex-col gap-3">
+              {cart.map((item,i)=>(
+                <div key={i} className="flex justify-between items-center bg-white p-2 rounded shadow">
+                  <span>{item.name}</span>
+                  <span>{item.price} ₪</span>
+                  <button onClick={()=>{setCart(cart.filter(x=>x.id!==item.id))}} className="text-red-600"><X/></button>
+                </div>
+              ))}
+
+              <p className="text-lg font-bold text-blue-800 mt-2">الإجمالي: {total} ₪</p>
+
+              <div className="mt-4 flex flex-col gap-2">
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="payment" value="cod" checked={paymentMethod==="cod"} onChange={()=>setPaymentMethod("cod")} />
+                  دفع عند الاستلام
+                </label>
+
+                <label className="flex items-center gap-2 mt-2">
+                  <input type="radio" name="payment" value="visa" checked={paymentMethod==="visa"} onChange={()=>setPaymentMethod("visa")} />
+                  بطاقة Visa
+                </label>
+
+                {paymentMethod==="visa" && (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <input type="text" placeholder="رقم البطاقة" value={cardInfo.number} onChange={e=>setCardInfo({...cardInfo,number:e.target.value})} className="p-2 border rounded"/>
+                    <input type="text" placeholder="تاريخ الانتهاء (MM/YY)" value={cardInfo.expiry} onChange={e=>setCardInfo({...cardInfo,expiry:e.target.value})} className="p-2 border rounded"/>
+                    <input type="text" placeholder="CVV" value={cardInfo.cvv} onChange={e=>setCardInfo({...cardInfo,cvv:e.target.value})} className="p-2 border rounded"/>
+                  </div>
+                )}
+
+                <button onClick={handleCheckout} className="bg-blue-600 text-white py-2 rounded mt-3">إتمام الطلب</button>
+              </div>
             </div>
-            <button onClick={()=>setCartOpen(true)} className="relative"><ShoppingCart size={24}/>
-              {cart.length>0 && <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-1">{cart.length}</span>}
-            </button>
-            <button onClick={()=>setSidebarOpen(true)}><User size={24}/></button>
-          </div>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ------------------ التطبيق الرئيسي ------------------
+export default function App() {
+  const [selectedCategory, setSelectedCategory] = useState("الكل");
+  const [cart, setCart] = useState([]);
+  const [user, setUser] = useState(getUser());
+  const [showCart, setShowCart] = useState(false);
+  const [showUser, setShowUser] = useState(false);
+  const [viewProduct, setViewProduct] = useState(null);
+
+  const filtered = useMemo(()=>selectedCategory==="الكل"?PRODUCTS:PRODUCTS.filter(p=>p.category===selectedCategory), [selectedCategory]);
+
+  const addToCart = (product) => {
+    if(!user){ toast.error("الرجاء تسجيل الدخول أولاً"); return; }
+    const newCart = [...cart, product];
+    setCart(newCart);
+    saveCart(user.email, newCart);
+    toast.success("تمت الإضافة للسلة");
+  };
+
+  return (
+    <div className="min-h-screen bg-blue-50 p-6">
+      <Toaster position="top-right"/>
+      {/* رأس الموقع */}
+      <header className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-800">VoltixStore</h1>
+        <div className="flex gap-4 items-center">
+          <button onClick={()=>setShowUser(true)} className="bg-blue-600 text-white py-1 px-3 rounded flex items-center gap-1"><User size={18}/> المستخدم</button>
+          <button onClick={()=>setShowCart(true)} className="bg-blue-600 text-white py-1 px-3 rounded flex items-center gap-1"><ShoppingCart size={18}/> سلة المشتريات ({cart.length})</button>
         </div>
       </header>
 
       {/* تصنيفات */}
-      <div className="container mx-auto px-4 py-4 flex gap-3 flex-wrap">
-        {CATEGORIES.map(cat=><button key={cat} onClick={()=>setCategory(cat)} className={`px-4 py-2 rounded-full border ${category===cat?"bg-blue-600 text-white":"hover:bg-gray-100"}`}>{cat}</button>)}
+      <div className="flex gap-2 mb-6 overflow-x-auto">
+        {CATEGORIES.map((cat,i)=>(
+          <button key={i} onClick={()=>setSelectedCategory(cat)} className={`px-4 py-2 rounded-full ${selectedCategory===cat?"bg-blue-600 text-white":"bg-blue-200 text-blue-800"}`}>{cat}</button>
+        ))}
       </div>
 
       {/* المنتجات */}
-      <main className="container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-        {filtered.map(p=><ProductCard key={p.id} product={p} onAdd={addToCart} onView={()=>{}} />)}
-      </main>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {filtered.map(p=><ProductCard key={p.id} product={p} onAddToCart={addToCart} onViewDetails={setViewProduct}/>)}
+      </div>
 
-      <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} user={user} onLogin={setUser} onLogout={()=>{localStorage.removeItem("currentUser");setUser(null)}}/>
-      <CartModal isOpen={cartOpen} onClose={()=>setCartOpen(false)} cart={cart} onRemove={removeFromCart} user={user}/>
+      <ProductDetailModal product={viewProduct} onClose={()=>setViewProduct(null)} onAddToCart={addToCart}/>
+      <CartPanel isOpen={showCart} onClose={()=>setShowCart(false)} cart={cart} setCart={setCart} user={user}/>
+      <UserPanel isOpen={showUser} onClose={()=>setShowUser(false)} user={user} setUser={setUser} cart={cart} setCart={setCart}/>
     </div>
   );
 }
