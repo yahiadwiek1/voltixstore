@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# electronics-shop
+# voltixstore
 
 This is a fully-featured online electronics store built with React, Tailwind CSS, and TypeScript. It leverages Framer Motion for smooth animations and Lucide React for sleek icons. The project demonstrates modern UI/UX design principles, responsive layouts, and interactive components for an enhanced user experience.
 
@@ -32,6 +31,3 @@ export default tseslint.config([
     },
   },
 ])
-=======
-# voltixstore
->>>>>>> 5413d0886c2d5d5f026c7181dc06f2c4ba3c8783
