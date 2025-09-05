@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingCart, X, Star, User, Phone, MessageCircle } from "lucide-react";
+import { Search, ShoppingCart, X, Star, User } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 
 // ------------------ بيانات ------------------
@@ -35,14 +35,15 @@ const saveOrder = (userEmail, order) => {
 const getOrders = (userEmail) => JSON.parse(localStorage.getItem("voltix_orders_" + userEmail)) || [];
 
 // ------------------ بطاقة المنتج ------------------
-function ProductCard({ product, onAddToCart, onViewDetails }) {
+function ProductCard({ product, onAddToCart, onViewDetails, onRemoveFromCart, inCart }) {
   return (
-    <motion.div layout initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}} className="bg-white shadow rounded-2xl p-4 hover:shadow-xl transition duration-300">
+    <motion.div layout initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}} className="bg-white shadow rounded-2xl p-4 hover:shadow-xl transition duration-300 relative">
+      {inCart && <button onClick={()=>onRemoveFromCart(product)} className="absolute top-2 right-2 text-red-600"><X/></button>}
       <img src={product.image} alt={product.name} className="w-full h-36 object-cover rounded-xl mb-2 cursor-pointer" onClick={()=>onViewDetails(product)}/>
       <h3 className="text-lg font-bold cursor-pointer" onClick={()=>onViewDetails(product)}>{product.name}</h3>
       <p className="text-blue-600 font-semibold">{product.price} ₪</p>
       <div className="flex items-center text-yellow-500"><Star size={16} className="fill-yellow-500"/> {product.rating}</div>
-      <button onClick={()=>onAddToCart(product)} className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 rounded-xl hover:from-blue-700 hover:to-blue-500 transition">إضافة للسلة</button>
+      {!inCart && <button onClick={()=>onAddToCart(product)} className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-2 rounded-xl hover:from-blue-700 hover:to-blue-500 transition">إضافة للسلة</button>}
     </motion.div>
   );
 }
@@ -183,61 +184,63 @@ function CartPanel({ isOpen, onClose, cart, setCart, user }) {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [cardInfo, setCardInfo] = useState({ number:"", expiry:"", cvv:"" });
   const total = cart.reduce((sum,p)=>sum+p.price,0);
+  const paymentAddress = user ? `${user.address}, ${user.city}` : "";
 
   const handleCheckout = () => {
     if(!user) { toast.error("الرجاء تسجيل الدخول لإتمام الشراء"); return; }
-    if(paymentMethod==="visa" && (!cardInfo.number || !cardInfo.expiry || !cardInfo.cvv)){
-      toast.error("الرجاء تعبئة جميع حقول بطاقة Visa"); return;
-    }
-    const order = { date:new Date().toLocaleString(), total, items:[...cart], payment: paymentMethod };
+    const order = { items: cart, total, method: paymentMethod, address: paymentAddress, date: new Date().toLocaleString() };
     saveOrder(user.email, order);
-    saveCart(user.email, []);
     setCart([]);
-    toast.success("تم تأكيد الطلب");
+    saveCart(user.email, []);
+    toast.success("تم إتمام الطلب بنجاح");
     onClose();
+  };
+
+  const removeItem = (item) => {
+    const updated = cart.filter(p=>p.id!==item.id);
+    setCart(updated);
+    if(user) saveCart(user.email, updated);
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} className="fixed top-0 right-0 w-96 h-full bg-blue-50 shadow-2xl p-6 z-50 overflow-y-auto">
+        <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} className="fixed top-0 right-0 w-96 h-full bg-white shadow-2xl p-6 z-50 overflow-y-auto">
           <button onClick={onClose} className="absolute top-4 left-4"><X size={24}/></button>
-          <h2 className="text-2xl font-bold text-blue-800 mb-4">سلة المشتريات</h2>
-
-          {cart.length===0 ? <p className="text-blue-700">السلة فارغة</p> : (
-            <div className="flex flex-col gap-3">
-              {cart.map((item,i)=>(
-                <div key={i} className="flex justify-between items-center bg-white p-2 rounded shadow">
-                  <span>{item.name}</span>
-                  <span>{item.price} ₪</span>
-                  <button onClick={()=>{setCart(cart.filter(x=>x.id!==item.id))}} className="text-red-600"><X/></button>
-                </div>
-              ))}
-
-              <p className="text-lg font-bold text-blue-800 mt-2">الإجمالي: {total} ₪</p>
-
+          <h2 className="text-2xl font-bold mb-4">سلة المشتريات</h2>
+          {cart.length===0 && <p>السلة فارغة</p>}
+          {cart.map(item=>(
+            <div key={item.id} className="flex justify-between items-center border-b py-2">
+              <div>
+                <p className="font-semibold">{item.name}</p>
+                <p className="text-blue-600">{item.price} ₪</p>
+              </div>
+              <button onClick={()=>removeItem(item)} className="text-red-600"><X/></button>
+            </div>
+          ))}
+          {cart.length>0 && (
+            <>
+              <p className="font-bold mt-4">الإجمالي: {total} ₪</p>
               <div className="mt-4 flex flex-col gap-2">
-                <label className="flex items-center gap-2">
-                  <input type="radio" name="payment" value="cod" checked={paymentMethod==="cod"} onChange={()=>setPaymentMethod("cod")} />
+                <label>
+                  <input type="radio" name="payment" value="cod" checked={paymentMethod==="cod"} onChange={e=>setPaymentMethod(e.target.value)}/>
                   دفع عند الاستلام
                 </label>
-
-                <label className="flex items-center gap-2 mt-2">
-                  <input type="radio" name="payment" value="visa" checked={paymentMethod==="visa"} onChange={()=>setPaymentMethod("visa")} />
-                  بطاقة Visa
+                <label>
+                  <input type="radio" name="payment" value="visa" checked={paymentMethod==="visa"} onChange={e=>setPaymentMethod(e.target.value)}/>
+                  Visa
                 </label>
-
                 {paymentMethod==="visa" && (
                   <div className="flex flex-col gap-2 mt-2">
                     <input type="text" placeholder="رقم البطاقة" value={cardInfo.number} onChange={e=>setCardInfo({...cardInfo,number:e.target.value})} className="p-2 border rounded"/>
-                    <input type="text" placeholder="تاريخ الانتهاء (MM/YY)" value={cardInfo.expiry} onChange={e=>setCardInfo({...cardInfo,expiry:e.target.value})} className="p-2 border rounded"/>
+                    <input type="text" placeholder="MM/YY" value={cardInfo.expiry} onChange={e=>setCardInfo({...cardInfo,expiry:e.target.value})} className="p-2 border rounded"/>
                     <input type="text" placeholder="CVV" value={cardInfo.cvv} onChange={e=>setCardInfo({...cardInfo,cvv:e.target.value})} className="p-2 border rounded"/>
                   </div>
                 )}
-
-                <button onClick={handleCheckout} className="bg-blue-600 text-white py-2 rounded mt-3">إتمام الطلب</button>
+                {user && <p className="mt-2 text-gray-700">سيتم شحن الطلب إلى: {paymentAddress}</p>}
               </div>
-            </div>
+              <button onClick={handleCheckout} className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">إتمام الشراء</button>
+            </>
           )}
         </motion.div>
       )}
@@ -247,50 +250,57 @@ function CartPanel({ isOpen, onClose, cart, setCart, user }) {
 
 // ------------------ التطبيق الرئيسي ------------------
 export default function App() {
-  const [selectedCategory, setSelectedCategory] = useState("الكل");
-  const [cart, setCart] = useState([]);
-  const [user, setUser] = useState(getUser());
-  const [showCart, setShowCart] = useState(false);
-  const [showUser, setShowUser] = useState(false);
-  const [viewProduct, setViewProduct] = useState(null);
+  const [selectedCategory,setSelectedCategory] = useState("الكل");
+  const [cart,setCart] = useState([]);
+  const [user,setUser] = useState(getUser());
+  const [productDetail,setProductDetail] = useState(null);
+  const [isUserPanelOpen,setIsUserPanelOpen] = useState(false);
+  const [isCartOpen,setIsCartOpen] = useState(false);
 
-  const filtered = useMemo(()=>selectedCategory==="الكل"?PRODUCTS:PRODUCTS.filter(p=>p.category===selectedCategory), [selectedCategory]);
+  useEffect(()=>{ if(user) setCart(getCart(user.email)); },[user]);
+
+  const filtered = useMemo(()=>selectedCategory==="الكل"?PRODUCTS:PRODUCTS.filter(p=>p.category===selectedCategory),[selectedCategory]);
 
   const addToCart = (product) => {
-    if(!user){ toast.error("الرجاء تسجيل الدخول أولاً"); return; }
-    const newCart = [...cart, product];
-    setCart(newCart);
-    saveCart(user.email, newCart);
+    if(cart.some(p=>p.id===product.id)) return;
+    const updated = [...cart, product];
+    setCart(updated);
+    if(user) saveCart(user.email, updated);
     toast.success("تمت الإضافة للسلة");
   };
 
+  const removeFromCart = (product) => {
+    const updated = cart.filter(p=>p.id!==product.id);
+    setCart(updated);
+    if(user) saveCart(user.email, updated);
+  };
+
   return (
-    <div className="min-h-screen bg-blue-50 p-6">
+    <div className="min-h-screen bg-gray-100 p-4">
       <Toaster position="top-right"/>
-      {/* رأس الموقع */}
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-blue-800">VoltixStore</h1>
-        <div className="flex gap-4 items-center">
-          <button onClick={()=>setShowUser(true)} className="bg-blue-600 text-white py-1 px-3 rounded flex items-center gap-1"><User size={18}/> المستخدم</button>
-          <button onClick={()=>setShowCart(true)} className="bg-blue-600 text-white py-1 px-3 rounded flex items-center gap-1"><ShoppingCart size={18}/> سلة المشتريات ({cart.length})</button>
+      <header className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold text-blue-600">VoltixStore</h1>
+        <div className="flex items-center gap-4">
+          <button onClick={()=>setIsUserPanelOpen(true)} className="flex items-center gap-1"><User/> {user?user.firstName:"تسجيل/دخول"}</button>
+          <button onClick={()=>setIsCartOpen(true)} className="flex items-center gap-1"><ShoppingCart/> ({cart.length})</button>
         </div>
       </header>
 
-      {/* تصنيفات */}
-      <div className="flex gap-2 mb-6 overflow-x-auto">
-        {CATEGORIES.map((cat,i)=>(
-          <button key={i} onClick={()=>setSelectedCategory(cat)} className={`px-4 py-2 rounded-full ${selectedCategory===cat?"bg-blue-600 text-white":"bg-blue-200 text-blue-800"}`}>{cat}</button>
+      <nav className="flex gap-2 mb-4 overflow-x-auto">
+        {CATEGORIES.map(cat=>(
+          <button key={cat} onClick={()=>setSelectedCategory(cat)} className={`px-3 py-1 rounded-xl ${selectedCategory===cat?"bg-blue-600 text-white":"bg-white border"}`}>{cat}</button>
         ))}
-      </div>
+      </nav>
 
-      {/* المنتجات */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filtered.map(p=><ProductCard key={p.id} product={p} onAddToCart={addToCart} onViewDetails={setViewProduct}/>)}
-      </div>
+      <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filtered.map(p=>(
+          <ProductCard key={p.id} product={p} onAddToCart={addToCart} onViewDetails={setProductDetail} onRemoveFromCart={removeFromCart} inCart={cart.some(c=>c.id===p.id)}/>
+        ))}
+      </motion.div>
 
-      <ProductDetailModal product={viewProduct} onClose={()=>setViewProduct(null)} onAddToCart={addToCart}/>
-      <CartPanel isOpen={showCart} onClose={()=>setShowCart(false)} cart={cart} setCart={setCart} user={user}/>
-      <UserPanel isOpen={showUser} onClose={()=>setShowUser(false)} user={user} setUser={setUser} cart={cart} setCart={setCart}/>
+      <ProductDetailModal product={productDetail} onClose={()=>setProductDetail(null)} onAddToCart={addToCart}/>
+      <UserPanel isOpen={isUserPanelOpen} onClose={()=>setIsUserPanelOpen(false)} user={user} setUser={setUser} cart={cart} setCart={setCart}/>
+      <CartPanel isOpen={isCartOpen} onClose={()=>setIsCartOpen(false)} cart={cart} setCart={setCart} user={user}/>
     </div>
   );
 }
