@@ -172,12 +172,11 @@ const PRODUCTS = [
 }
 ];
 // ---------------- Local Storage ----------------
-const saveUser = (user) => localStorage.setItem("user", JSON.stringify(user));
-const getUser = () => JSON.parse(localStorage.getItem("user") || "null");
-const removeUser = () => localStorage.removeItem("user");
-const saveCart = (userEmail, cart) => localStorage.setItem("cart_" + userEmail, JSON.stringify(cart));
-const getCart = (userEmail) => JSON.parse(localStorage.getItem("cart_" + userEmail) || "[]");
-
+export const saveUser = (user) => localStorage.setItem("user", JSON.stringify(user));
+export const getUser = () => JSON.parse(localStorage.getItem("user") || "null");
+export const removeUser = () => localStorage.removeItem("user");
+export const saveCart = (userEmail, cart) => localStorage.setItem("cart_" + userEmail, JSON.stringify(cart));
+export const getCart = (userEmail) => JSON.parse(localStorage.getItem("cart_" + userEmail) || "[]");
 // ---------------- Product Card ----------------
 function ProductCard({ product, onAddToCart, onViewDetails, inCart }) {
   const [selectedColor,setSelectedColor]=useState(product.colors[0]);
@@ -394,53 +393,112 @@ export default function ElectronicsStore() {
   const [visaCard, setVisaCard] = useState({ number: "", expiry: "", cvv: "" });
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState({});
+  const [editForm, setEditForm] = useState({ firstName:"", lastName:"", email:"", password:"", phone:"", city:"", address:"" });
 
-  useEffect(() => { if(user) setCart(getCart(user.email)); }, [user]);
+  useEffect(() => {
+    if (user) setCart(getCart(user.email));
+  }, [user]);
 
   const addToCart = (product) => {
-    if(!user) { toast.error("يجب تسجيل الدخول لإضافة منتجات للسلة"); return; }
-    const newCart=[...cart,product];
+    if (!user) { toast.error("يجب تسجيل الدخول لإضافة منتجات للسلة"); return; }
+
+    // إذا كان المنتج موجودًا، زد الكمية، وإلا أضفه مع quantity = 1
+    const existing = cart.find(p => p.id === product.id && p.selectedColor === product.selectedColor);
+    let newCart;
+    if (existing) {
+      newCart = cart.map(p => p === existing ? { ...p, quantity: (p.quantity || 1) + 1 } : p);
+    } else {
+      newCart = [...cart, { ...product, quantity: 1 }];
+    }
+
     setCart(newCart);
-    if(user) saveCart(user.email,newCart);
+    if (user) saveCart(user.email, newCart);
     toast.success("تمت الإضافة للسلة");
   };
 
   const removeFromCart = (product) => {
-    const newCart=cart.filter(p=>p!==product);
+    const newCart = cart.filter(p => p !== product);
     setCart(newCart);
-    if(user) saveCart(user.email,newCart);
+    if (user) saveCart(user.email, newCart);
   };
 
-  const filteredProducts = selectedCategory==="الكل"?PRODUCTS:PRODUCTS.filter(p=>p.category===selectedCategory);
+  const updateQuantity = (product, delta) => {
+    const newCart = cart.map(p => {
+      if (p === product) {
+        const newQty = Math.max(1, (p.quantity || 1) + delta);
+        return { ...p, quantity: newQty };
+      }
+      return p;
+    });
+    setCart(newCart);
+    if (user) saveCart(user.email, newCart);
+  };
 
-const handleRegister = (e) => {
-  e.preventDefault();
-  const form = { ...editForm };
+  const filteredProducts = selectedCategory === "الكل" ? PRODUCTS : PRODUCTS.filter(p => p.category === selectedCategory);
 
-  // التحقق من جميع الحقول
-  if (!form.firstName || !form.lastName || !form.email || !form.password || !form.phone || !form.city || !form.address) {
-    toast.error("جميع الحقول إلزامية");
-    return;
-  }
-  if (!form.email.endsWith("@gmail.com")) {
-    toast.error("البريد الإلكتروني يجب أن ينتهي بـ @gmail.com");
-    return;
-  }
-  if (form.password.length < 8 || !/\d/.test(form.password)) {
-    toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على رقم");
-    return;
-  }
-  if (!/^\d{10,}$/.test(form.phone)) {
-    toast.error("رقم الهاتف يجب أن يكون 10 أرقام أو أكثر");
-    return;
-  }
+  const handleRegister = (e) => {
+    e.preventDefault();
+    const form = { ...editForm };
 
-  saveUser(form);
-  setUser(form);
-  setEditForm(form);
-  toast.success("تم إنشاء الحساب بنجاح");
-};
+    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.phone || !form.city || !form.address) {
+      toast.error("جميع الحقول إلزامية");
+      return;
+    }
+    if (!form.email.endsWith("@gmail.com")) {
+      toast.error("البريد الإلكتروني يجب أن ينتهي بـ @gmail.com");
+      return;
+    }
+    if (form.password.length < 8 || !/\d/.test(form.password)) {
+      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على رقم");
+      return;
+    }
+    if (!/^\d{10,}$/.test(form.phone)) {
+      toast.error("رقم الهاتف يجب أن يكون 10 أرقام أو أكثر");
+      return;
+    }
 
+    saveUser(form);
+    setUser(form);
+    setEditForm(form);
+    toast.success("تم إنشاء الحساب بنجاح");
+  };
+
+  const handlePlaceOrder = () => {
+    if (!user) { toast.error("يجب تسجيل الدخول لإتمام الشراء"); return; }
+    if (cart.length === 0) { toast.error("السلة فارغة"); return; }
+
+    let paymentMethod = "";
+
+    if (showVisaForm) {
+      paymentMethod = "بطاقة Visa";
+      const cardNumberRegex = /^\d{16}$/;
+      const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+      const cvvRegex = /^\d{3}$/;
+      if (!cardNumberRegex.test(visaCard.number)) { toast.error("رقم البطاقة يجب أن يحتوي على 16 رقم"); return; }
+      if (!expiryRegex.test(visaCard.expiry)) { toast.error("تاريخ الانتهاء يجب أن يكون بالشكل MM/YY"); return; }
+      if (!cvvRegex.test(visaCard.cvv)) { toast.error("CVV يجب أن يحتوي على 3 أرقام"); return; }
+    }
+
+    if (showCashOnDelivery) paymentMethod = "الدفع عند الاستلام";
+
+    const shippingCost = 20;
+    const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0) + shippingCost;
+
+    setInvoiceData({
+      products: cart,
+      shipping: shippingCost,
+      total,
+      paymentMethod,
+      deliveryAddress: `${user.address}, ${user.city}`,
+    });
+
+    setShowInvoice(true);
+    setCart([]);
+    if (user) saveCart(user.email, []);
+    setShowVisaForm(false);
+    setShowCashOnDelivery(false);
+    toast.success("تم إتمام الطلب بنجاح");
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -450,17 +508,17 @@ const handleRegister = (e) => {
       <div className="flex justify-between items-center mb-6 bg-blue-700 p-4 rounded-xl shadow-md">
         <h1 className="text-3xl font-bold text-white">Voltix Store</h1>
         <div className="flex gap-4">
-          <button onClick={()=>setIsUserPanelOpen(true)} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-4 py-2 rounded-xl hover:bg-blue-200 transition"><User /> الحساب</button>
-          <button onClick={()=>setIsCartOpen(true)} className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-500 transition"><ShoppingCart /> السلة ({cart.length})</button>
+          <button onClick={() => setIsUserPanelOpen(true)} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-4 py-2 rounded-xl hover:bg-blue-200 transition"><User /> الحساب</button>
+          <button onClick={() => setIsCartOpen(true)} className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-500 transition"><ShoppingCart /> السلة ({cart.length})</button>
         </div>
       </div>
 
       {/* شريط التصنيف */}
       <div className="flex overflow-x-auto gap-3 mb-6 py-2 bg-blue-600 rounded-xl px-2">
         {CATEGORIES.map(cat => (
-          <button key={cat} onClick={()=>setSelectedCategory(cat)} 
+          <button key={cat} onClick={() => setSelectedCategory(cat)} 
             className={`flex-shrink-0 px-4 py-2 rounded-xl border font-semibold transition
-              ${selectedCategory===cat
+              ${selectedCategory === cat
                 ? "bg-white text-blue-700 border-white"
                 : "bg-blue-500 text-white border-blue-500 hover:bg-blue-400 hover:text-white"
               }`}>{cat}</button>
@@ -470,49 +528,54 @@ const handleRegister = (e) => {
       {/* المنتجات */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {filteredProducts.map(p => (
-          <ProductCard key={p.id} product={p} onAddToCart={addToCart} onViewDetails={setSelectedProduct} inCart={cart.includes(p)}/>
+          <ProductCard key={p.id} product={p} onAddToCart={addToCart} onViewDetails={setSelectedProduct} inCart={cart.some(c => c.id === p.id && c.selectedColor === p.selectedColor)}/>
         ))}
       </div>
 
       {/* مودال التفاصيل */}
-      {selectedProduct && <ProductDetailModal product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToCart={addToCart}/>}
+      {selectedProduct && <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart}/>}
 
-      {/* لوحة السلة + الدفع */}
+      {/* مودال السلة + الدفع مع أزرار الكمية */}
       <AnimatePresence>
         {isCartOpen && (
-          <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} className="fixed top-0 right-0 w-96 h-full bg-gradient-to-b from-white to-blue-50 shadow-2xl p-6 z-50 overflow-y-auto rounded-l-3xl">
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed top-0 right-0 w-96 h-full bg-gradient-to-b from-white to-blue-50 shadow-2xl p-6 z-50 overflow-y-auto rounded-l-3xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-blue-600">🛒 سلتك</h2>
-              <X onClick={()=>setIsCartOpen(false)} className="cursor-pointer text-gray-500 hover:text-red-600 transition"/>
+              <X onClick={() => setIsCartOpen(false)} className="cursor-pointer text-gray-500 hover:text-red-600 transition"/>
             </div>
 
-            {cart.length===0 ? <p className="text-center text-gray-500 mt-20">السلة فارغة</p> : (
+            {cart.length === 0 ? <p className="text-center text-gray-500 mt-20">السلة فارغة</p> : (
               <>
-                {cart.map((item,i)=>(
-                  <motion.div key={i} layout initial={{opacity:0,x:50}} animate={{opacity:1,x:0}} exit={{opacity:0,x:50}} className="flex gap-3 items-center border-b py-3 px-2 rounded-xl mb-2 bg-white shadow-sm hover:shadow-md transition">
-                    <img src={(item.images[item.selectedColor]||[])[0]} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow"/>
+                {cart.map((item, i) => (
+                  <motion.div key={i} layout initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }} className="flex gap-3 items-center border-b py-3 px-2 rounded-xl mb-2 bg-white shadow-sm hover:shadow-md transition">
+                    <img src={(item.images[item.selectedColor] || [])[0]} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow"/>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{item.name}</p>
                       <p className="text-gray-600 text-sm">لون: {item.selectedColor}</p>
                       <p className="text-blue-600 font-bold">{item.price} ₪</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <button onClick={() => updateQuantity(item, -1)} className="bg-gray-200 px-2 rounded">-</button>
+                        <span>{item.quantity || 1}</span>
+                        <button onClick={() => updateQuantity(item, 1)} className="bg-gray-200 px-2 rounded">+</button>
+                      </div>
                     </div>
-                    <button onClick={()=>removeFromCart(item)} className="text-red-600 font-bold text-xl hover:text-red-800 transition">×</button>
+                    <button onClick={() => removeFromCart(item)} className="text-red-600 font-bold text-xl hover:text-red-800 transition">×</button>
                   </motion.div>
                 ))}
 
                 <div className="mt-6 border-t pt-4 flex flex-col gap-3">
                   <p className="text-gray-700">تكلفة الشحن: 20 ₪</p>
-                  <p className="font-bold text-xl text-gray-900">المجموع: {cart.reduce((sum,item)=>sum+item.price,0)+20} ₪</p>
+                  <p className="font-bold text-xl text-gray-900">المجموع: {cart.reduce((sum,item)=>sum+item.price*(item.quantity||1),0)+20} ₪</p>
 
                   <h3 className="font-semibold text-lg mt-2">اختر طريقة الدفع:</h3>
 
                   <button onClick={() => { setShowCashOnDelivery(true); setShowVisaForm(false); toast.success("تم اختيار الدفع عند الاستلام"); }}
-                    className={`w-full py-2 rounded-xl border hover:bg-blue-600 hover:text-white transition ${showCashOnDelivery?"bg-blue-600 text-white":"bg-white text-gray-700"}`}>
+                    className={`w-full py-2 rounded-xl border hover:bg-blue-600 hover:text-white transition ${showCashOnDelivery ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}>
                     الدفع عند الاستلام
                   </button>
 
                   <button onClick={() => { setShowVisaForm(true); setShowCashOnDelivery(false); toast.success("تم اختيار الدفع بالفيزا"); }}
-                    className={`w-full py-2 rounded-xl border hover:bg-blue-600 hover:text-white transition ${showVisaForm?"bg-blue-600 text-white":"bg-white text-gray-700"}`}>
+                    className={`w-full py-2 rounded-xl border hover:bg-blue-600 hover:text-white transition ${showVisaForm ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}>
                     الدفع ببطاقة Visa
                   </button>
 
@@ -544,13 +607,14 @@ const handleRegister = (e) => {
           <div className="bg-white p-6 rounded-xl w-11/12 md:w-2/3 max-h-[80vh] overflow-y-auto shadow-2xl">
             <h2 className="text-2xl font-bold text-blue-600 mb-4">فاتورتك</h2>
             <div className="flex flex-col gap-2">
-              {invoiceData.products.map((p,i)=>(
+              {invoiceData.products?.map((p,i)=>(
                 <div key={i} className="flex justify-between border-b py-2">
                   <div>
                     <p className="font-semibold">{p.name}</p>
                     <p className="text-sm text-gray-600">لون: {p.selectedColor}</p>
+                    <p className="text-sm text-gray-600">كمية: {p.quantity || 1}</p>
                   </div>
-                  <p className="font-bold text-blue-600">{p.price} ₪</p>
+                  <p className="font-bold text-blue-600">{(p.price*(p.quantity||1))} ₪</p>
                 </div>
               ))}
               <div className="flex justify-between border-t pt-2">
