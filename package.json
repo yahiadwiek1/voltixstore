@@ -2,7 +2,6 @@
   "name": "voltixstore",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
   "homepage": "https://USERNAME.github.io/voltixstore",
   "scripts": {
     "dev": "vite",
@@ -11,11 +10,21 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  "dependencies": {
-    ...
-  },
   "devDependencies": {
-    "gh-pages": "^6.1.1",
-    ...
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "autoprefixer": "^10.4.21",
+    "gh-pages": "^6.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.10",
+    "vite": "^7.1.4"
+  },
+  "dependencies": {
+    "framer-motion": "^12.23.12",
+    "lucide-react": "^0.542.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hot-toast": "^2.6.0"
   }
 }
