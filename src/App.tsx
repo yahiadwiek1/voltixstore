@@ -243,34 +243,98 @@ function ProductDetailModal({ product, onClose, onAddToCart }) {
 
 // ---------------- User Panel ----------------
 function UserPanel({ isOpen, onClose, user, setUser, cart, setCart }) {
-  const [mode,setMode]=useState("login");
-  const [isEditing,setIsEditing]=useState(false);
-  const [editForm,setEditForm]=useState(user || {firstName:"",lastName:"",email:"",password:"",phone:"",city:"",address:""});
+  const [mode, setMode] = useState("login");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(
+    user || { firstName: "", lastName: "", email: "", password: "", phone: "", city: "", address: "" }
+  );
 
-  const handleLogin=(e)=>{ e.preventDefault(); const email=e.target[0].value; const password=e.target[1].value; const stored=getUser(); if(stored && stored.email===email && stored.password===password){ setUser(stored); setEditForm(stored); setMode("login"); toast.success("تم تسجيل الدخول"); } else { toast.error("خطأ في البريد أو كلمة المرور"); } };
-  const handleRegister=(e)=>{ e.preventDefault(); const form={ firstName:e.target[0].value,lastName:e.target[1].value,email:e.target[2].value,password:e.target[3].value,phone:e.target[4].value,city:e.target[5].value,address:e.target[6].value }; saveUser(form); setUser(form); setEditForm(form); toast.success("تم إنشاء الحساب"); };
-  const handleSaveEdit=()=>{ saveUser(editForm); setUser(editForm); toast.success("تم تحديث البيانات"); setIsEditing(false); };
-  const handleLogout=()=>{ removeUser(); setUser(null); setCart([]); toast.success("تم تسجيل الخروج"); };
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const email = e.target[0].value;
+    const password = e.target[1].value;
+    const stored = getUser();
+    if (stored && stored.email === email && stored.password === password) {
+      setUser(stored);
+      setEditForm(stored);
+      setMode("login");
+      toast.success("تم تسجيل الدخول");
+    } else {
+      toast.error("خطأ في البريد أو كلمة المرور");
+    }
+  };
 
-  if(!isOpen) return null;
+  const handleRegister = (e) => {
+    e.preventDefault();
+    const form = {
+      firstName: e.target[0].value,
+      lastName: e.target[1].value,
+      email: e.target[2].value,
+      password: e.target[3].value,
+      phone: e.target[4].value,
+      city: e.target[5].value,
+      address: e.target[6].value,
+    };
+
+    // التحقق من جميع الحقول
+    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.phone || !form.city || !form.address) {
+      toast.error("جميع الحقول إلزامية");
+      return;
+    }
+    if (!form.email.endsWith("@gmail.com")) {
+      toast.error("البريد الإلكتروني يجب أن ينتهي بـ @gmail.com");
+      return;
+    }
+    if (form.password.length < 8 || !/\d/.test(form.password)) {
+      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على رقم");
+      return;
+    }
+    if (!/^\d{10,}$/.test(form.phone)) {
+      toast.error("رقم الهاتف يجب أن يكون 10 أرقام أو أكثر");
+      return;
+    }
+
+    saveUser(form);
+    setUser(form);
+    setEditForm(form);
+    toast.success("تم إنشاء الحساب بنجاح");
+    setMode("login");
+  };
+
+  const handleSaveEdit = () => {
+    saveUser(editForm);
+    setUser(editForm);
+    toast.success("تم تحديث البيانات");
+    setIsEditing(false);
+  };
+
+  const handleLogout = () => {
+    removeUser();
+    setUser(null);
+    setCart([]);
+    toast.success("تم تسجيل الخروج");
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed top-0 right-0 w-96 h-full bg-white shadow-lg p-6 overflow-y-auto z-50">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold">👤 حساب المستخدم</h2>
-        <X onClick={onClose} className="cursor-pointer"/>
+        <X onClick={onClose} className="cursor-pointer" />
       </div>
+
       {user ? (
         <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-3xl"><User/></div>
+          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-3xl"><User /></div>
           {isEditing ? (
             <div className="flex flex-col gap-2 w-full">
-              <input type="text" value={editForm.firstName} onChange={e=>setEditForm({...editForm,firstName:e.target.value})} className="border p-2 rounded"/>
-              <input type="text" value={editForm.lastName} onChange={e=>setEditForm({...editForm,lastName:e.target.value})} className="border p-2 rounded"/>
-              <input type="email" value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})} className="border p-2 rounded"/>
-              <input type="text" value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})} className="border p-2 rounded"/>
-              <input type="text" value={editForm.city} onChange={e=>setEditForm({...editForm,city:e.target.value})} className="border p-2 rounded"/>
-              <input type="text" value={editForm.address} onChange={e=>setEditForm({...editForm,address:e.target.value})} className="border p-2 rounded"/>
+              <input type="text" value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} className="border p-2 rounded" />
+              <input type="text" value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} className="border p-2 rounded" />
+              <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="border p-2 rounded" />
+              <input type="text" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="border p-2 rounded" />
+              <input type="text" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className="border p-2 rounded" />
+              <input type="text" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className="border p-2 rounded" />
               <button onClick={handleSaveEdit} className="bg-green-600 text-white py-2 rounded">حفظ التغييرات</button>
             </div>
           ) : (
@@ -281,7 +345,7 @@ function UserPanel({ isOpen, onClose, user, setUser, cart, setCart }) {
               {user.city && <p>🏙️ {user.city}</p>}
               {user.address && <p>📍 {user.address}</p>}
               <div className="flex gap-2 mt-4">
-                <button onClick={()=>setIsEditing(true)} className="flex items-center gap-2 bg-gray-300 px-4 py-2 rounded"><Edit2 size={16}/> تعديل الحساب</button>
+                <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-gray-300 px-4 py-2 rounded"><Edit2 size={16}/> تعديل الحساب</button>
                 <button onClick={handleLogout} className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded"><LogOut size={16}/> تسجيل الخروج</button>
               </div>
             </>
@@ -290,25 +354,25 @@ function UserPanel({ isOpen, onClose, user, setUser, cart, setCart }) {
       ) : (
         <div>
           <div className="flex mb-4 border-b">
-            <button className={`flex-1 py-2 ${mode==="login"?"border-b-2 border-blue-600 font-bold":""}`} onClick={()=>setMode("login")}>تسجيل الدخول</button>
-            <button className={`flex-1 py-2 ${mode==="register"?"border-b-2 border-blue-600 font-bold":""}`} onClick={()=>setMode("register")}>إنشاء حساب</button>
+            <button className={`flex-1 py-2 ${mode==="login"?"border-b-2 border-blue-600 font-bold":""}`} onClick={() => setMode("login")}>تسجيل الدخول</button>
+            <button className={`flex-1 py-2 ${mode==="register"?"border-b-2 border-blue-600 font-bold":""}`} onClick={() => setMode("register")}>إنشاء حساب</button>
           </div>
-          {mode==="login" && (
+          {mode === "login" && (
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
-              <input type="email" placeholder="البريد الإلكتروني" className="border p-2 rounded" required/>
-              <input type="password" placeholder="كلمة المرور" className="border p-2 rounded" required/>
+              <input type="email" placeholder="البريد الإلكتروني" className="border p-2 rounded" required />
+              <input type="password" placeholder="كلمة المرور" className="border p-2 rounded" required />
               <button type="submit" className="bg-blue-600 text-white py-2 rounded">تسجيل الدخول</button>
             </form>
           )}
-          {mode==="register" && (
+          {mode === "register" && (
             <form onSubmit={handleRegister} className="flex flex-col gap-4">
-              <input type="text" placeholder="الاسم الأول" className="border p-2 rounded" required/>
-              <input type="text" placeholder="اسم العائلة" className="border p-2 rounded" required/>
-              <input type="email" placeholder="البريد الإلكتروني" className="border p-2 rounded" required/>
-              <input type="password" placeholder="كلمة المرور" className="border p-2 rounded" required/>
-              <input type="text" placeholder="الهاتف" className="border p-2 rounded"/>
-              <input type="text" placeholder="المدينة" className="border p-2 rounded"/>
-              <input type="text" placeholder="العنوان" className="border p-2 rounded"/>
+              <input type="text" placeholder="الاسم الأول" className="border p-2 rounded" required />
+              <input type="text" placeholder="اسم العائلة" className="border p-2 rounded" required />
+              <input type="email" placeholder="البريد الإلكتروني (Gmail فقط)" className="border p-2 rounded" required />
+              <input type="password" placeholder="كلمة المرور (8 أحرف على الأقل مع رقم)" className="border p-2 rounded" required />
+              <input type="text" placeholder="رقم الهاتف (10 أرقام أو أكثر)" className="border p-2 rounded" required />
+              <input type="text" placeholder="المدينة" className="border p-2 rounded" required />
+              <input type="text" placeholder="العنوان" className="border p-2 rounded" required />
               <button type="submit" className="bg-green-600 text-white py-2 rounded">إنشاء الحساب</button>
             </form>
           )}
@@ -317,7 +381,6 @@ function UserPanel({ isOpen, onClose, user, setUser, cart, setCart }) {
     </div>
   );
 }
-
 // ---------------- Main Component ----------------
 export default function ElectronicsStore() {
   const [cart, setCart] = useState([]);
@@ -350,32 +413,34 @@ export default function ElectronicsStore() {
 
   const filteredProducts = selectedCategory==="الكل"?PRODUCTS:PRODUCTS.filter(p=>p.category===selectedCategory);
 
-  const handlePlaceOrder = () => {
-    if(!user) { toast.error("يجب تسجيل الدخول لإتمام الشراء"); return; }
-    if(cart.length===0) { toast.error("السلة فارغة"); return; }
+const handleRegister = (e) => {
+  e.preventDefault();
+  const form = { ...editForm };
 
-    const deliveryAddress = user.address || "لم يتم تحديد عنوان";
-    const paymentMethod = showVisaForm ? "بطاقة Visa" : showCashOnDelivery ? "الدفع عند الاستلام" : null;
+  // التحقق من جميع الحقول
+  if (!form.firstName || !form.lastName || !form.email || !form.password || !form.phone || !form.city || !form.address) {
+    toast.error("جميع الحقول إلزامية");
+    return;
+  }
+  if (!form.email.endsWith("@gmail.com")) {
+    toast.error("البريد الإلكتروني يجب أن ينتهي بـ @gmail.com");
+    return;
+  }
+  if (form.password.length < 8 || !/\d/.test(form.password)) {
+    toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على رقم");
+    return;
+  }
+  if (!/^\d{10,}$/.test(form.phone)) {
+    toast.error("رقم الهاتف يجب أن يكون 10 أرقام أو أكثر");
+    return;
+  }
 
-    if(!paymentMethod) { toast.error("اختر طريقة دفع لإتمام الشراء"); return; }
+  saveUser(form);
+  setUser(form);
+  setEditForm(form);
+  toast.success("تم إنشاء الحساب بنجاح");
+};
 
-    // تجهيز بيانات الفاتورة
-    setInvoiceData({
-      products: [...cart],
-      shipping: 20,
-      total: cart.reduce((sum,item)=>sum+item.price,0)+20,
-      deliveryAddress,
-      paymentMethod
-    });
-    setShowInvoice(true);
-
-    // تفريغ السلة بعد الدفع
-    setCart([]);
-    if(user) saveCart(user.email,[]);
-    setShowVisaForm(false);
-    setShowCashOnDelivery(false);
-    setIsCartOpen(false);
-  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
